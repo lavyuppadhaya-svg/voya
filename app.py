@@ -22,7 +22,7 @@ if "authenticated" not in st.session_state:
 if "user_data" not in st.session_state:
     st.session_state["user_data"] = {
         "name": "Lavyanika Uppadhaya",
-        "college": "rkgit",
+        "college": "RKGIT",
         "degree": "B.Tech",
         "city": "Ghaziabad, UP",
         "email": "lavyanika@rkgit.edu.in",
@@ -190,22 +190,26 @@ header[data-testid="stHeader"] {
 """, unsafe_allow_html=True)
 
 
-# ---------------- SKILL EXTRACTION ENGINE ----------------
+# ---------------- ENHANCED SKILL EXTRACTION ENGINE ----------------
 
 def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
     skills = []
 
-    if any(word in text for word in ["video", "editing", "edit", "reel", "shorts", "cut"]):
+    # Graphic Design, Painting & Visual Art Keywords
+    if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "photo", "banner", "canvas"]):
+        skills.append("Graphic Design & Visual Art")
+
+    # Video Editing & Production
+    if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere"]):
         skills.append("Video Editing & Short-form Content")
 
-    if any(word in text for word in ["translate", "translation", "hindi", "english", "subtitles", "anuvad"]):
+    # Translation & Content Writing
+    if any(word in text for word in ["translate", "translation", "hindi", "english", "subtitles", "anuvad", "transcribe", "writing", "content"]):
         skills.append("Language Translation & Subtitling")
 
-    if any(word in text for word in ["design", "canva", "thumbnail", "poster", "logo", "photo"]):
-        skills.append("Graphic Design & Canva")
-
-    if any(word in text for word in ["code", "python", "java", "html", "web", "developer", "program", "app"]):
+    # Coding & Web Development
+    if any(word in text for word in ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "program", "app"]):
         skills.append("Web Development & Scripting")
 
     if not skills:
@@ -265,28 +269,46 @@ if not st.session_state["authenticated"]:
             st.markdown("<br>", unsafe_allow_html=True)
 
             if tab_choice == "Login":
-                email = st.text_input("Email address", value="student@gmail.com")
-                password = st.text_input("Password", type="password", value="••••••••••••")
+                email_input = st.text_input("Email address", value="", placeholder="lavyanika@rkgit.edu.in")
+                password_input = st.text_input("Password", type="password", value="", placeholder="••••••••••••")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("Continue to VOYA", use_container_width=True):
-                    st.session_state["user_data"]["email"] = email
+                    entered_email = email_input.strip() if email_input.strip() else "lavyanika@rkgit.edu.in"
+                    
+                    if email_input.strip() and "@" in email_input:
+                        derived_name = email_input.split("@")[0].replace(".", " ").replace("_", " ").title()
+                    else:
+                        derived_name = "Lavyanika Uppadhaya"
+
+                    st.session_state["user_data"] = {
+                        "name": derived_name,
+                        "college": "RKGIT",
+                        "degree": "B.Tech",
+                        "city": "Ghaziabad, UP",
+                        "email": entered_email,
+                        "schedule": "Weekends"
+                    }
                     st.session_state["authenticated"] = True
                     st.rerun()
             else:
-                name = st.text_input("Full name", value="Lavy Uppadhaya")
-                college = st.text_input("College / Institution", value="rkgit")
+                name = st.text_input("Full name", value="", placeholder="Lavyanika Uppadhaya")
+                college = st.text_input("College / Institution", value="", placeholder="RKGIT")
                 degree = st.selectbox("Degree", ["B.Tech", "B.Sc", "B.Com", "BCA", "Other"])
-                email = st.text_input("Email address", value="student@gmail.com")
+                email = st.text_input("Email address", value="", placeholder="lavyanika@rkgit.edu.in")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("Create Profile & Continue", use_container_width=True):
+                    final_name = name.strip() if name.strip() else "Lavyanika Uppadhaya"
+                    final_college = college.strip() if college.strip() else "RKGIT"
+                    final_email = email.strip() if email.strip() else "lavyanika@rkgit.edu.in"
+
                     st.session_state["user_data"] = {
-                        "name": name,
-                        "college": college,
+                        "name": final_name,
+                        "college": final_college,
                         "degree": degree,
                         "city": "Ghaziabad, UP",
-                        "email": email,
+                        "email": final_email,
                         "schedule": "Weekends"
                     }
                     st.session_state["authenticated"] = True
@@ -318,7 +340,7 @@ with st.sidebar:
 
     st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-    # Interactive User Account Menu (Matching Image Dropdown)
+    # Interactive User Account Menu
     with st.popover(f"🔴 {user['name']}  •  Free", use_container_width=True):
         st.markdown(f"### 👤 {user['name']}")
         st.caption("Plan: **Free** Tier Student Account")
@@ -412,13 +434,15 @@ st.markdown('<div class="section-desc-sm">Tell VOYA about yourself</div>', unsaf
 
 text_input_val = st.text_input(
     "Skills Text Input",
-    value="I know Python, Java and HTML. I enjoy web development and can work on weekends.",
+    value="",
+    placeholder="e.g. I know painting and drawing, or video editing...",
     label_visibility="collapsed"
 )
 
 if st.button("Analyze Typed Skills"):
-    st.session_state["transcript"] = text_input_val
-    st.session_state["extracted_skills"] = extract_skills_and_intent(text_input_val)
+    val_to_analyze = text_input_val.strip() if text_input_val.strip() else "I know painting and visual arts and want to work on weekends."
+    st.session_state["transcript"] = val_to_analyze
+    st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_analyze)
 
 # Dynamic Skill Results & Opportunity Cards
 if "transcript" in st.session_state:
@@ -434,9 +458,30 @@ if "transcript" in st.session_state:
 
     st.markdown("### 🚀 Matched Opportunities")
     available_gigs = [
-        {"title": "YouTube Shorts & Reels Editor", "pay": "₹1,500 / weekend", "skill": "Video Editing & Short-form Content", "desc": "Edit short videos for creators."},
-        {"title": "Web Development & Python Scripting", "pay": "₹2,000 / weekend", "skill": "Web Development & Scripting", "desc": "Build scripts and landing pages using HTML/Python."},
-        {"title": "Hindi Subtitle Translator", "pay": "₹1,200 / weekend", "skill": "Language Translation & Subtitling", "desc": "Translate video audio into subtitles."}
+        {
+            "title": "Custom Artwork & Digital Banner Designer",
+            "pay": "₹1,800 / project",
+            "skill": "Graphic Design & Visual Art",
+            "desc": "Design custom illustrations, canvas art, and social media banners for brands."
+        },
+        {
+            "title": "YouTube Shorts & Reels Editor",
+            "pay": "₹1,500 / weekend",
+            "skill": "Video Editing & Short-form Content",
+            "desc": "Edit short videos with captions, cuts, and background music for creators."
+        },
+        {
+            "title": "Web Development & Python Scripting",
+            "pay": "₹2,000 / weekend",
+            "skill": "Web Development & Scripting",
+            "desc": "Build scripts and responsive landing pages using HTML/Python."
+        },
+        {
+            "title": "Hindi Subtitle Translator",
+            "pay": "₹1,200 / weekend",
+            "skill": "Language Translation & Subtitling",
+            "desc": "Translate video audio into clean Hinglish/Hindi subtitles."
+        }
     ]
 
     detected = st.session_state.get("extracted_skills", [])
