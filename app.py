@@ -190,27 +190,35 @@ header[data-testid="stHeader"] {
 """, unsafe_allow_html=True)
 
 
-# ---------------- ENHANCED SKILL EXTRACTION ENGINE ----------------
+# ---------------- COMPREHENSIVE BILINGUAL SKILL EXTRACTION ENGINE ----------------
 
 def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
     skills = []
 
-    # Graphic Design, Painting & Visual Art Keywords
-    if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "photo", "banner", "canvas"]):
+    # Music, Audio & Voiceover
+    if any(word in text for word in ["music", "singing", "song", "audio", "voice", "voiceover", "sound", "beats", "संगीत", "गाना", "आवाज", "म्यूजिक"]):
+        skills.append("Music, Audio & Voiceover")
+
+    # Dance & Performing Arts
+    if any(word in text for word in ["dance", "dancing", "choreography", "dancer", "डांस", "नाच", "डांसर"]):
+        skills.append("Dance & Performing Arts")
+
+    # Graphic Design & Visual Art
+    if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग"]):
         skills.append("Graphic Design & Visual Art")
 
     # Video Editing & Production
-    if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere"]):
+    if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग"]):
         skills.append("Video Editing & Short-form Content")
 
-    # Translation & Content Writing
-    if any(word in text for word in ["translate", "translation", "hindi", "english", "subtitles", "anuvad", "transcribe", "writing", "content"]):
-        skills.append("Language Translation & Subtitling")
-
     # Coding & Web Development
-    if any(word in text for word in ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "program", "app"]):
+    if any(word in text for word in ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "app", "कोडिंग", "वेबसाइट"]):
         skills.append("Web Development & Scripting")
+
+    # Translation & Writing
+    if any(word in text for word in ["translate", "translation", "hindi", "english", "subtitles", "anuvad", "writing", "content", "अनुवाद", "हिंदी"]):
+        skills.append("Language Translation & Subtitling")
 
     if not skills:
         skills.append("General Micro-Task Freelancer")
@@ -365,7 +373,7 @@ with st.sidebar:
             
         if st.button("🚪 Log out", use_container_width=True):
             st.session_state["authenticated"] = False
-            for key in ["transcript", "extracted_skills"]:
+            for key in ["transcript", "extracted_skills", "last_audio"]:
                 st.session_state.pop(key, None)
             st.rerun()
 
@@ -390,7 +398,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Record Your Voice Section
+# ---------------- AUDIO & TEXT PROCESSING SECTION ----------------
+
 st.markdown('<div class="section-heading-lg">Record your voice</div>', unsafe_allow_html=True)
 st.caption("Click to record your voice")
 
@@ -400,9 +409,12 @@ audio_bytes = audio_recorder(
     neutral_color="#8b78ff",
     icon_name="microphone",
     icon_size="2x",
+    key="voya_audio_recorder"
 )
 
-if audio_bytes:
+# Process audio ONLY when a new recording payload is made
+if audio_bytes and ("last_audio" not in st.session_state or st.session_state["last_audio"] != audio_bytes):
+    st.session_state["last_audio"] = audio_bytes
     st.audio(audio_bytes, format="audio/wav")
 
     with st.spinner("Processing speech with Gnani Prisma V2.5..."):
@@ -416,15 +428,15 @@ if audio_bytes:
 
             if response.ok:
                 result = response.json()
-                transcript = result.get("transcript") or result.get("text") or "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+                transcript = result.get("transcript") or result.get("text") or ""
             else:
-                transcript = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
-
+                transcript = ""
         except Exception:
-            transcript = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+            transcript = ""
 
-        st.session_state["transcript"] = transcript
-        st.session_state["extracted_skills"] = extract_skills_and_intent(transcript)
+        if transcript.strip():
+            st.session_state["transcript"] = transcript
+            st.session_state["extracted_skills"] = extract_skills_and_intent(transcript)
 
 st.markdown("---")
 
@@ -435,16 +447,17 @@ st.markdown('<div class="section-desc-sm">Tell VOYA about yourself</div>', unsaf
 text_input_val = st.text_input(
     "Skills Text Input",
     value="",
-    placeholder="e.g. I know painting and drawing, or video editing...",
+    placeholder="e.g. I know music, dance, painting, or video editing...",
     label_visibility="collapsed"
 )
 
 if st.button("Analyze Typed Skills"):
-    val_to_analyze = text_input_val.strip() if text_input_val.strip() else "I know painting and visual arts and want to work on weekends."
+    val_to_analyze = text_input_val.strip() if text_input_val.strip() else "I know video editing and want to work on weekends."
     st.session_state["transcript"] = val_to_analyze
     st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_analyze)
 
-# Dynamic Skill Results & Opportunity Cards
+# ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
+
 if "transcript" in st.session_state:
     st.markdown("<br>", unsafe_allow_html=True)
     skills_formatted = " • ".join(st.session_state["extracted_skills"])
@@ -457,7 +470,20 @@ if "transcript" in st.session_state:
         st.markdown(f"**Detected Skills:** `{skills_formatted}`")
 
     st.markdown("### 🚀 Matched Opportunities")
+    
     available_gigs = [
+        {
+            "title": "Jingle & Background Score Composer",
+            "pay": "₹2,200 / track",
+            "skill": "Music, Audio & Voiceover",
+            "desc": "Create background music, voiceovers, or acoustic jingles for brand campaigns."
+        },
+        {
+            "title": "Reels Dance & Choreography Creator",
+            "pay": "₹2,000 / project",
+            "skill": "Dance & Performing Arts",
+            "desc": "Choreograph or perform trending short-form dance reels for promotional events."
+        },
         {
             "title": "Custom Artwork & Digital Banner Designer",
             "pay": "₹1,800 / project",
@@ -486,11 +512,9 @@ if "transcript" in st.session_state:
 
     detected = st.session_state.get("extracted_skills", [])
     
-    # Dynamically separate matched vs secondary opportunities
     matched_gigs = [g for g in available_gigs if g["skill"] in detected]
     other_gigs = [g for g in available_gigs if g["skill"] not in detected]
 
-    # 1. Display 100% Matched Opportunities at the very top
     for gig in matched_gigs:
         with st.container(border=True):
             st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
@@ -502,7 +526,6 @@ if "transcript" in st.session_state:
                 st.markdown(f"🟢 **{gig['pay']}**")
             st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
 
-    # 2. Display secondary opportunities below under a 75% Related badge
     if other_gigs:
         st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
         for gig in other_gigs:
