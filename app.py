@@ -194,7 +194,7 @@ header[data-testid="stHeader"] {
 """, unsafe_allow_html=True)
 
 
-# ---------------- DYNAMIC BILINGUAL SKILL EXTRACTION ENGINE ----------------
+# ---------------- BILINGUAL MULTI-CATEGORY SKILL ENGINE ----------------
 
 def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
@@ -205,7 +205,7 @@ def extract_skills_and_intent(transcript_text):
     if any(word in text for word in art_words):
         skills.append("Graphic Design & Visual Art")
 
-    # 2. Video Editing & Production
+    # 2. Video Editing & Short-form Production
     video_words = ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग", "एडिट"]
     if any(word in text for word in video_words):
         skills.append("Video Editing & Short-form Content")
@@ -337,6 +337,11 @@ if not st.session_state["authenticated"]:
 
 user = st.session_state["user_data"]
 
+# Default query state on initial entry
+if "transcript" not in st.session_state:
+    st.session_state["transcript"] = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+    st.session_state["extracted_skills"] = extract_skills_and_intent(st.session_state["transcript"])
+
 # ---------------- SIDEBAR WITH INTERACTIVE USER POPOVER ----------------
 
 with st.sidebar:
@@ -401,10 +406,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------- AUDIO & TEXT PROCESSING SECTION ----------------
+# ---------------- AUDIO RECORDING & GNANI STT ENGINE ----------------
 
 st.markdown('<div class="section-heading-lg">Record your voice</div>', unsafe_allow_html=True)
-st.caption("Click to record your voice")
+st.caption("Click the microphone to start recording your voice")
 
 audio_bytes = audio_recorder(
     text="Click to record your voice",
@@ -416,18 +421,26 @@ audio_bytes = audio_recorder(
 )
 
 if audio_bytes:
-    st.audio(audio_bytes, format="audio/wav")
+    st.audio(audio_bytes, format="audio/webm")
 
+    # Check if new recording payload exists
     if "last_audio" not in st.session_state or st.session_state["last_audio"] != audio_bytes:
         st.session_state["last_audio"] = audio_bytes
 
-        with st.spinner("Processing speech with Gnani Prisma V2.5..."):
+        with st.spinner("Processing speech with Gnani Prisma STT..."):
             parsed_transcript = ""
+            
+            # 1. Send multi-format payload supporting WebM and WAV containers
             try:
                 url = "https://app.gnani.ai/api/v1/stt"
-                headers = {"Authorization": f"Bearer {GNANI_API_KEY}"}
-                files = {"audio": ("speech.wav", audio_bytes, "audio/wav")}
-                data = {"language": "hi", "model": "prisma"}
+                headers = {
+                    "Authorization": f"Bearer {GNANI_API_KEY}",
+                    "token": GNANI_API_KEY
+                }
+                
+                # Send WebM payload matching Chrome browser recording standard
+                files = {"audio": ("speech.webm", audio_bytes, "audio/webm")}
+                data = {"language": "hi", "model": "prisma", "audio_format": "webm"}
 
                 response = requests.post(url, headers=headers, files=files, data=data, timeout=8)
 
@@ -443,12 +456,10 @@ if audio_bytes:
             except Exception:
                 parsed_transcript = ""
 
-            # Fail-safe STT query if external call is empty
-            if not parsed_transcript.strip():
-                parsed_transcript = "Mujhe painting aur drawing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
-
-            st.session_state["transcript"] = parsed_transcript
-            st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
+            # Update session state with real speech or fallback query
+            if parsed_transcript.strip():
+                st.session_state["transcript"] = parsed_transcript
+                st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
 
 st.markdown("---")
 
@@ -459,24 +470,19 @@ st.markdown('<div class="section-desc-sm">Tell VOYA about yourself</div>', unsaf
 text_input_val = st.text_input(
     "Skills Text Input",
     value="",
-    placeholder="e.g. I know painting, drawing, video editing, music, or coding...",
+    placeholder="e.g. I know video editing, painting, music, or coding...",
     label_visibility="collapsed"
 )
 
 if st.button("Analyze Typed Skills"):
-    val_to_use = text_input_val.strip() if text_input_val.strip() else "I know painting and drawing and want to work on weekends."
+    val_to_use = text_input_val.strip() if text_input_val.strip() else "I know video editing and want to work on weekends."
     st.session_state["transcript"] = val_to_use
     st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_use)
-
-# Ensure query exists on initial state
-if "transcript" not in st.session_state:
-    st.session_state["transcript"] = "I know painting, drawing and visual arts."
-    st.session_state["extracted_skills"] = extract_skills_and_intent(st.session_state["transcript"])
 
 # ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
 st.markdown("<br>", unsafe_allow_html=True)
-skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Graphic Design & Visual Art"]))
+skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Video Editing & Short-form Content"]))
 
 st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
 
@@ -489,16 +495,16 @@ st.markdown("### 🚀 Matched Opportunities")
 
 available_gigs = [
     {
-        "title": "Custom Artwork & Digital Banner Designer",
-        "pay": "₹1,800 / project",
-        "skill": "Graphic Design & Visual Art",
-        "desc": "Design custom illustrations, canvas art, and social media banners for brands."
-    },
-    {
         "title": "YouTube Shorts & Reels Editor",
         "pay": "₹1,500 / weekend",
         "skill": "Video Editing & Short-form Content",
         "desc": "Edit short videos with captions, cuts, and background music for creators."
+    },
+    {
+        "title": "Custom Artwork & Digital Banner Designer",
+        "pay": "₹1,800 / project",
+        "skill": "Graphic Design & Visual Art",
+        "desc": "Design custom illustrations, canvas art, and social media banners for brands."
     },
     {
         "title": "Jingle & Background Score Composer",
@@ -531,6 +537,7 @@ detected = st.session_state.get("extracted_skills", [])
 matched_gigs = [g for g in available_gigs if g["skill"] in detected]
 other_gigs = [g for g in available_gigs if g["skill"] not in detected]
 
+# 1. Render 100% matched gigs first
 for gig in matched_gigs:
     with st.container(border=True):
         st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
@@ -542,6 +549,7 @@ for gig in matched_gigs:
             st.markdown(f"🟢 **{gig['pay']}**")
         st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
 
+# 2. Render remaining related gigs below
 if other_gigs:
     st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
     for gig in other_gigs:
