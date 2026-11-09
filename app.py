@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 from audio_recorder_streamlit import audio_recorder
 
 load_dotenv()
+
+# Secure key retrieval supporting both local env and Streamlit Cloud Secrets
 GNANI_API_KEY = os.getenv("GNANI_API_KEY")
+if not GNANI_API_KEY and "GNANI_API_KEY" in st.secrets:
+    GNANI_API_KEY = st.secrets["GNANI_API_KEY"]
 
 st.set_page_config(
     page_title="VOYA | Your Voice, Your Future",
@@ -190,11 +194,15 @@ header[data-testid="stHeader"] {
 """, unsafe_allow_html=True)
 
 
-# ---------------- COMPREHENSIVE BILINGUAL SKILL EXTRACTION ENGINE ----------------
+# ---------------- BILINGUAL SKILL EXTRACTION ENGINE ----------------
 
 def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
     skills = []
+
+    # Graphic Design, Painting & Visual Art
+    if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग"]):
+        skills.append("Graphic Design & Visual Art")
 
     # Music, Audio & Voiceover
     if any(word in text for word in ["music", "singing", "song", "audio", "voice", "voiceover", "sound", "beats", "संगीत", "गाना", "आवाज", "म्यूजिक"]):
@@ -203,10 +211,6 @@ def extract_skills_and_intent(transcript_text):
     # Dance & Performing Arts
     if any(word in text for word in ["dance", "dancing", "choreography", "dancer", "डांस", "नाच", "डांसर"]):
         skills.append("Dance & Performing Arts")
-
-    # Graphic Design & Visual Art
-    if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग"]):
-        skills.append("Graphic Design & Visual Art")
 
     # Video Editing & Production
     if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग"]):
@@ -221,7 +225,7 @@ def extract_skills_and_intent(transcript_text):
         skills.append("Language Translation & Subtitling")
 
     if not skills:
-        skills.append("General Micro-Task Freelancer")
+        skills.append("Graphic Design & Visual Art")
 
     return skills
 
@@ -348,7 +352,6 @@ with st.sidebar:
 
     st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-    # Interactive User Account Menu
     with st.popover(f"🔴 {user['name']}  •  Free", use_container_width=True):
         st.markdown(f"### 👤 {user['name']}")
         st.caption("Plan: **Free** Tier Student Account")
@@ -419,6 +422,7 @@ if audio_bytes:
         st.session_state["last_audio"] = audio_bytes
 
         with st.spinner("Processing speech with Gnani Prisma V2.5..."):
+            parsed_transcript = ""
             try:
                 url = "https://app.gnani.ai/api/v1/stt"
                 headers = {"Authorization": f"Bearer {GNANI_API_KEY}"}
@@ -428,19 +432,20 @@ if audio_bytes:
                 response = requests.post(url, headers=headers, files=files, data=data, timeout=8)
 
                 if response.ok:
-                    result = response.json()
-                    transcript = result.get("transcript") or result.get("text") or result.get("data") or ""
-                else:
-                    transcript = ""
+                    res_json = response.json()
+                    parsed_transcript = (
+                        res_json.get("transcript") or 
+                        res_json.get("result") or 
+                        res_json.get("text") or 
+                        (res_json.get("data") if isinstance(res_json.get("data"), str) else "") or
+                        ""
+                    )
             except Exception:
-                transcript = ""
+                parsed_transcript = ""
 
-            # Robust fallback so app never breaks or stays blank
-            if not transcript.strip():
-                transcript = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
-
-            st.session_state["transcript"] = transcript
-            st.session_state["extracted_skills"] = extract_skills_and_intent(transcript)
+            if parsed_transcript.strip():
+                st.session_state["transcript"] = parsed_transcript
+                st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
 
 st.markdown("---")
 
@@ -451,24 +456,24 @@ st.markdown('<div class="section-desc-sm">Tell VOYA about yourself</div>', unsaf
 text_input_val = st.text_input(
     "Skills Text Input",
     value="",
-    placeholder="e.g. I know music, dance, painting, or video editing...",
+    placeholder="e.g. I know painting, drawing, music, or video editing...",
     label_visibility="collapsed"
 )
 
 if st.button("Analyze Typed Skills"):
-    val_to_analyze = text_input_val.strip() if text_input_val.strip() else "I know video editing and want to work on weekends."
+    val_to_analyze = text_input_val.strip() if text_input_val.strip() else "I know painting and drawing and want to work on weekends."
     st.session_state["transcript"] = val_to_analyze
     st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_analyze)
 
-# Default initialization if user just arrived
+# Default initialization on load
 if "transcript" not in st.session_state:
-    st.session_state["transcript"] = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+    st.session_state["transcript"] = "I know painting, drawing and visual arts."
     st.session_state["extracted_skills"] = extract_skills_and_intent(st.session_state["transcript"])
 
 # ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
 st.markdown("<br>", unsafe_allow_html=True)
-skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Video Editing & Short-form Content"]))
+skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Graphic Design & Visual Art"]))
 
 st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
 
@@ -481,6 +486,12 @@ st.markdown("### 🚀 Matched Opportunities")
 
 available_gigs = [
     {
+        "title": "Custom Artwork & Digital Banner Designer",
+        "pay": "₹1,800 / project",
+        "skill": "Graphic Design & Visual Art",
+        "desc": "Design custom illustrations, canvas art, and social media banners for brands."
+    },
+    {
         "title": "Jingle & Background Score Composer",
         "pay": "₹2,200 / track",
         "skill": "Music, Audio & Voiceover",
@@ -491,12 +502,6 @@ available_gigs = [
         "pay": "₹2,000 / project",
         "skill": "Dance & Performing Arts",
         "desc": "Choreograph or perform trending short-form dance reels for promotional events."
-    },
-    {
-        "title": "Custom Artwork & Digital Banner Designer",
-        "pay": "₹1,800 / project",
-        "skill": "Graphic Design & Visual Art",
-        "desc": "Design custom illustrations, canvas art, and social media banners for brands."
     },
     {
         "title": "YouTube Shorts & Reels Editor",
