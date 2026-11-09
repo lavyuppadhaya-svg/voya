@@ -485,17 +485,33 @@ if "transcript" in st.session_state:
     ]
 
     detected = st.session_state.get("extracted_skills", [])
-    for gig in available_gigs:
-        matched = gig["skill"] in detected
+    
+    # Dynamically separate matched vs secondary opportunities
+    matched_gigs = [g for g in available_gigs if g["skill"] in detected]
+    other_gigs = [g for g in available_gigs if g["skill"] not in detected]
+
+    # 1. Display 100% Matched Opportunities at the very top
+    for gig in matched_gigs:
         with st.container(border=True):
-            if matched:
-                st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
-            
+            st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
             c1, c2 = st.columns([3, 1])
             with c1:
                 st.markdown(f"**{gig['title']}**")
                 st.caption(gig["desc"])
             with c2:
                 st.markdown(f"🟢 **{gig['pay']}**")
+            st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
 
-            st.button(f"Quick Apply — {gig['title']}", key=gig['title'], use_container_width=True)
+    # 2. Display secondary opportunities below under a 75% Related badge
+    if other_gigs:
+        st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
+        for gig in other_gigs:
+            with st.container(border=True):
+                st.info("✦ 75% RELATED OPPORTUNITY")
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    st.markdown(f"**{gig['title']}**")
+                    st.caption(gig["desc"])
+                with c2:
+                    st.markdown(f"🟢 **{gig['pay']}**")
+                st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
