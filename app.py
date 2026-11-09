@@ -199,28 +199,34 @@ def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
     skills = []
 
-    # Video Editing & Production
-    if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग", "एडिट"]):
-        skills.append("Video Editing & Short-form Content")
-
     # Graphic Design, Painting & Visual Art
-    if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग"]):
+    art_words = ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "canvas", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग", "पेंट"]
+    if any(word in text for word in art_words):
         skills.append("Graphic Design & Visual Art")
 
+    # Video Editing & Production
+    video_words = ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग", "एडिट"]
+    if any(word in text for word in video_words):
+        skills.append("Video Editing & Short-form Content")
+
     # Music, Audio & Voiceover
-    if any(word in text for word in ["music", "singing", "song", "audio", "voice", "voiceover", "sound", "beats", "संगीत", "गाना", "आवाज", "म्यूजिक"]):
+    music_words = ["music", "singing", "song", "audio", "voice", "voiceover", "sound", "beats", "संगीत", "गाना", "आवाज", "म्यूजिक"]
+    if any(word in text for word in music_words):
         skills.append("Music, Audio & Voiceover")
 
     # Dance & Performing Arts
-    if any(word in text for word in ["dance", "dancing", "choreography", "dancer", "डांस", "नाच", "डांसर"]):
+    dance_words = ["dance", "dancing", "choreography", "dancer", "डांस", "नाच", "डांसर"]
+    if any(word in text for word in dance_words):
         skills.append("Dance & Performing Arts")
 
     # Coding & Web Development
-    if any(word in text for word in ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "app", "कोडिंग", "वेबसाइट"]):
+    code_words = ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "app", "कोडिंग", "वेबसाइट"]
+    if any(word in text for word in code_words):
         skills.append("Web Development & Scripting")
 
     # Translation & Writing
-    if any(word in text for word in ["translate", "translation", "hindi", "english", "subtitles", "anuvad", "writing", "content", "अनुवाद", "हिंदी"]):
+    trans_words = ["translate", "translation", "hindi", "english", "subtitles", "anuvad", "writing", "content", "अनुवाद", "हिंदी"]
+    if any(word in text for word in trans_words):
         skills.append("Language Translation & Subtitling")
 
     if not skills:
@@ -442,11 +448,9 @@ if audio_bytes:
             except Exception:
                 parsed_transcript = ""
 
-            if not parsed_transcript.strip():
-                parsed_transcript = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
-
-            st.session_state["transcript"] = parsed_transcript
-            st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
+            if parsed_transcript.strip():
+                st.session_state["transcript"] = parsed_transcript
+                st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
 
 st.markdown("---")
 
@@ -457,14 +461,14 @@ st.markdown('<div class="section-desc-sm">Tell VOYA about yourself</div>', unsaf
 text_input_val = st.text_input(
     "Skills Text Input",
     value="",
-    placeholder="e.g. I know video editing, painting, music, or coding...",
+    placeholder="e.g. I know painting, drawing, video editing, music, or coding...",
     label_visibility="collapsed"
 )
 
 if st.button("Analyze Typed Skills"):
-    val_to_use = text_input_val.strip() if text_input_val.strip() else "I know video editing and want to work on weekends."
-    st.session_state["transcript"] = val_to_use
-    st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_use)
+    if text_input_val.strip():
+        st.session_state["transcript"] = text_input_val.strip()
+        st.session_state["extracted_skills"] = extract_skills_and_intent(text_input_val.strip())
 
 # ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
@@ -483,16 +487,16 @@ if "transcript" in st.session_state and st.session_state["transcript"]:
 
     available_gigs = [
         {
-            "title": "YouTube Shorts & Reels Editor",
-            "pay": "₹1,500 / weekend",
-            "skill": "Video Editing & Short-form Content",
-            "desc": "Edit short videos with captions, cuts, and background music for creators."
-        },
-        {
             "title": "Custom Artwork & Digital Banner Designer",
             "pay": "₹1,800 / project",
             "skill": "Graphic Design & Visual Art",
             "desc": "Design custom illustrations, canvas art, and social media banners for brands."
+        },
+        {
+            "title": "YouTube Shorts & Reels Editor",
+            "pay": "₹1,500 / weekend",
+            "skill": "Video Editing & Short-form Content",
+            "desc": "Edit short videos with captions, cuts, and background music for creators."
         },
         {
             "title": "Jingle & Background Score Composer",
@@ -554,5 +558,3 @@ if "transcript" in st.session_state and st.session_state["transcript"]:
                 with c2:
                     st.markdown(f"🟢 **{gig['pay']}**")
                 st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
-else:
-    st.info("💡 Record your voice above or type a skill and click **Analyze Typed Skills** to view your matched opportunities!")
