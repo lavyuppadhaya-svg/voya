@@ -6,7 +6,6 @@ from audio_recorder_streamlit import audio_recorder
 
 load_dotenv()
 
-# Secure key retrieval supporting both local env and Streamlit Cloud Secrets
 GNANI_API_KEY = os.getenv("GNANI_API_KEY")
 if not GNANI_API_KEY and "GNANI_API_KEY" in st.secrets:
     GNANI_API_KEY = st.secrets["GNANI_API_KEY"]
@@ -194,11 +193,15 @@ header[data-testid="stHeader"] {
 """, unsafe_allow_html=True)
 
 
-# ---------------- BILINGUAL SKILL EXTRACTION ENGINE ----------------
+# ---------------- DYNAMIC BILINGUAL SKILL EXTRACTION ENGINE ----------------
 
 def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
     skills = []
+
+    # Video Editing & Production
+    if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग", "एडिट"]):
+        skills.append("Video Editing & Short-form Content")
 
     # Graphic Design, Painting & Visual Art
     if any(word in text for word in ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग"]):
@@ -212,10 +215,6 @@ def extract_skills_and_intent(transcript_text):
     if any(word in text for word in ["dance", "dancing", "choreography", "dancer", "डांस", "नाच", "डांसर"]):
         skills.append("Dance & Performing Arts")
 
-    # Video Editing & Production
-    if any(word in text for word in ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग"]):
-        skills.append("Video Editing & Short-form Content")
-
     # Coding & Web Development
     if any(word in text for word in ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "app", "कोडिंग", "वेबसाइट"]):
         skills.append("Web Development & Scripting")
@@ -225,7 +224,7 @@ def extract_skills_and_intent(transcript_text):
         skills.append("Language Translation & Subtitling")
 
     if not skills:
-        skills.append("Graphic Design & Visual Art")
+        skills.append("General Micro-Task Freelancer")
 
     return skills
 
@@ -456,24 +455,24 @@ st.markdown('<div class="section-desc-sm">Tell VOYA about yourself</div>', unsaf
 text_input_val = st.text_input(
     "Skills Text Input",
     value="",
-    placeholder="e.g. I know painting, drawing, music, or video editing...",
+    placeholder="e.g. I know video editing, painting, music, or coding...",
     label_visibility="collapsed"
 )
 
 if st.button("Analyze Typed Skills"):
-    val_to_analyze = text_input_val.strip() if text_input_val.strip() else "I know painting and drawing and want to work on weekends."
-    st.session_state["transcript"] = val_to_analyze
-    st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_analyze)
+    if text_input_val.strip():
+        st.session_state["transcript"] = text_input_val.strip()
+        st.session_state["extracted_skills"] = extract_skills_and_intent(text_input_val.strip())
 
-# Default initialization on load
+# Clean initial state if unset
 if "transcript" not in st.session_state:
-    st.session_state["transcript"] = "I know painting, drawing and visual arts."
+    st.session_state["transcript"] = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
     st.session_state["extracted_skills"] = extract_skills_and_intent(st.session_state["transcript"])
 
 # ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
 st.markdown("<br>", unsafe_allow_html=True)
-skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Graphic Design & Visual Art"]))
+skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Video Editing & Short-form Content"]))
 
 st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
 
@@ -485,6 +484,12 @@ with st.container(border=True):
 st.markdown("### 🚀 Matched Opportunities")
 
 available_gigs = [
+    {
+        "title": "YouTube Shorts & Reels Editor",
+        "pay": "₹1,500 / weekend",
+        "skill": "Video Editing & Short-form Content",
+        "desc": "Edit short videos with captions, cuts, and background music for creators."
+    },
     {
         "title": "Custom Artwork & Digital Banner Designer",
         "pay": "₹1,800 / project",
@@ -504,12 +509,6 @@ available_gigs = [
         "desc": "Choreograph or perform trending short-form dance reels for promotional events."
     },
     {
-        "title": "YouTube Shorts & Reels Editor",
-        "pay": "₹1,500 / weekend",
-        "skill": "Video Editing & Short-form Content",
-        "desc": "Edit short videos with captions, cuts, and background music for creators."
-    },
-    {
         "title": "Web Development & Python Scripting",
         "pay": "₹2,000 / weekend",
         "skill": "Web Development & Scripting",
@@ -520,6 +519,12 @@ available_gigs = [
         "pay": "₹1,200 / weekend",
         "skill": "Language Translation & Subtitling",
         "desc": "Translate video audio into clean Hinglish/Hindi subtitles."
+    },
+    {
+        "title": "General Weekend Micro-Task Assistant",
+        "pay": "₹1,000 / day",
+        "skill": "General Micro-Task Freelancer",
+        "desc": "Assist with general digital tasks, social media engagement, and community support."
     }
 ]
 
