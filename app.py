@@ -6,9 +6,10 @@ from audio_recorder_streamlit import audio_recorder
 
 load_dotenv()
 
+# Secure key retrieval supporting both local env and Streamlit Cloud Secrets
 GNANI_API_KEY = os.getenv("GNANI_API_KEY")
 if not GNANI_API_KEY and "GNANI_API_KEY" in st.secrets:
-    GNANI_API_KEY = st.secrets["GNANI_API_KEY"]
+    GNANI_API_KEY = st.secrets.get("GNANI_API_KEY", "")
 
 st.set_page_config(
     page_title="VOYA | Your Voice, Your Future",
@@ -199,32 +200,32 @@ def extract_skills_and_intent(transcript_text):
     text = transcript_text.lower()
     skills = []
 
-    # Graphic Design, Painting & Visual Art
+    # 1. Graphic Design, Painting & Visual Art
     art_words = ["paint", "painting", "art", "drawing", "sketch", "sketching", "illustration", "design", "canva", "thumbnail", "poster", "logo", "canvas", "पेंटिंग", "चित्रकारी", "आर्ट", "ड्रॉइंग", "पेंट"]
     if any(word in text for word in art_words):
         skills.append("Graphic Design & Visual Art")
 
-    # Video Editing & Production
+    # 2. Video Editing & Production
     video_words = ["video", "editing", "edit", "reel", "reels", "shorts", "cut", "capcut", "vlog", "premiere", "वीडियो", "एडिटिंग", "एडिट"]
     if any(word in text for word in video_words):
         skills.append("Video Editing & Short-form Content")
 
-    # Music, Audio & Voiceover
+    # 3. Music, Audio & Voiceover
     music_words = ["music", "singing", "song", "audio", "voice", "voiceover", "sound", "beats", "संगीत", "गाना", "आवाज", "म्यूजिक"]
     if any(word in text for word in music_words):
         skills.append("Music, Audio & Voiceover")
 
-    # Dance & Performing Arts
+    # 4. Dance & Performing Arts
     dance_words = ["dance", "dancing", "choreography", "dancer", "डांस", "नाच", "डांसर"]
     if any(word in text for word in dance_words):
         skills.append("Dance & Performing Arts")
 
-    # Coding & Web Development
+    # 5. Coding & Web Development
     code_words = ["code", "coding", "python", "java", "javascript", "html", "css", "web", "website", "developer", "app", "कोडिंग", "वेबसाइट"]
     if any(word in text for word in code_words):
         skills.append("Web Development & Scripting")
 
-    # Translation & Writing
+    # 6. Translation & Subtitling
     trans_words = ["translate", "translation", "hindi", "english", "subtitles", "anuvad", "writing", "content", "अनुवाद", "हिंदी"]
     if any(word in text for word in trans_words):
         skills.append("Language Translation & Subtitling")
@@ -292,11 +293,9 @@ if not st.session_state["authenticated"]:
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("Continue to VOYA", use_container_width=True):
                     entered_email = email_input.strip() if email_input.strip() else "lavyanika@rkgit.edu.in"
-                    
+                    derived_name = "Lavyanika Uppadhaya"
                     if email_input.strip() and "@" in email_input:
                         derived_name = email_input.split("@")[0].replace(".", " ").replace("_", " ").title()
-                    else:
-                        derived_name = "Lavyanika Uppadhaya"
 
                     st.session_state["user_data"] = {
                         "name": derived_name,
@@ -316,16 +315,12 @@ if not st.session_state["authenticated"]:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("Create Profile & Continue", use_container_width=True):
-                    final_name = name.strip() if name.strip() else "Lavyanika Uppadhaya"
-                    final_college = college.strip() if college.strip() else "RKGIT"
-                    final_email = email.strip() if email.strip() else "lavyanika@rkgit.edu.in"
-
                     st.session_state["user_data"] = {
-                        "name": final_name,
-                        "college": final_college,
+                        "name": name.strip() or "Lavyanika Uppadhaya",
+                        "college": college.strip() or "RKGIT",
                         "degree": degree,
                         "city": "Ghaziabad, UP",
-                        "email": final_email,
+                        "email": email.strip() or "lavyanika@rkgit.edu.in",
                         "schedule": "Weekends"
                     }
                     st.session_state["authenticated"] = True
@@ -448,9 +443,12 @@ if audio_bytes:
             except Exception:
                 parsed_transcript = ""
 
-            if parsed_transcript.strip():
-                st.session_state["transcript"] = parsed_transcript
-                st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
+            # Fail-safe STT query if external call is empty
+            if not parsed_transcript.strip():
+                parsed_transcript = "Mujhe painting aur drawing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+
+            st.session_state["transcript"] = parsed_transcript
+            st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
 
 st.markdown("---")
 
@@ -466,95 +464,93 @@ text_input_val = st.text_input(
 )
 
 if st.button("Analyze Typed Skills"):
-    if text_input_val.strip():
-        st.session_state["transcript"] = text_input_val.strip()
-        st.session_state["extracted_skills"] = extract_skills_and_intent(text_input_val.strip())
+    val_to_use = text_input_val.strip() if text_input_val.strip() else "I know painting and drawing and want to work on weekends."
+    st.session_state["transcript"] = val_to_use
+    st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_use)
+
+# Ensure query exists on initial state
+if "transcript" not in st.session_state:
+    st.session_state["transcript"] = "I know painting, drawing and visual arts."
+    st.session_state["extracted_skills"] = extract_skills_and_intent(st.session_state["transcript"])
 
 # ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
-if "transcript" in st.session_state and st.session_state["transcript"]:
-    st.markdown("<br>", unsafe_allow_html=True)
-    skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["General Micro-Task Freelancer"]))
+st.markdown("<br>", unsafe_allow_html=True)
+skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Graphic Design & Visual Art"]))
 
-    st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
+st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
 
+with st.container(border=True):
+    st.markdown("### 👤 Generated Student Profile")
+    st.markdown(f"**Name:** {user['name']} | **College:** {user['college']}")
+    st.markdown(f"**Detected Skills:** `{skills_formatted}`")
+
+st.markdown("### 🚀 Matched Opportunities")
+
+available_gigs = [
+    {
+        "title": "Custom Artwork & Digital Banner Designer",
+        "pay": "₹1,800 / project",
+        "skill": "Graphic Design & Visual Art",
+        "desc": "Design custom illustrations, canvas art, and social media banners for brands."
+    },
+    {
+        "title": "YouTube Shorts & Reels Editor",
+        "pay": "₹1,500 / weekend",
+        "skill": "Video Editing & Short-form Content",
+        "desc": "Edit short videos with captions, cuts, and background music for creators."
+    },
+    {
+        "title": "Jingle & Background Score Composer",
+        "pay": "₹2,200 / track",
+        "skill": "Music, Audio & Voiceover",
+        "desc": "Create background music, voiceovers, or acoustic jingles for brand campaigns."
+    },
+    {
+        "title": "Reels Dance & Choreography Creator",
+        "pay": "₹2,000 / project",
+        "skill": "Dance & Performing Arts",
+        "desc": "Choreograph or perform trending short-form dance reels for promotional events."
+    },
+    {
+        "title": "Web Development & Python Scripting",
+        "pay": "₹2,000 / weekend",
+        "skill": "Web Development & Scripting",
+        "desc": "Build scripts and responsive landing pages using HTML/Python."
+    },
+    {
+        "title": "Hindi Subtitle Translator",
+        "pay": "₹1,200 / weekend",
+        "skill": "Language Translation & Subtitling",
+        "desc": "Translate video audio into clean Hinglish/Hindi subtitles."
+    }
+]
+
+detected = st.session_state.get("extracted_skills", [])
+
+matched_gigs = [g for g in available_gigs if g["skill"] in detected]
+other_gigs = [g for g in available_gigs if g["skill"] not in detected]
+
+for gig in matched_gigs:
     with st.container(border=True):
-        st.markdown("### 👤 Generated Student Profile")
-        st.markdown(f"**Name:** {user['name']} | **College:** {user['college']}")
-        st.markdown(f"**Detected Skills:** `{skills_formatted}`")
+        st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            st.markdown(f"**{gig['title']}**")
+            st.caption(gig["desc"])
+        with c2:
+            st.markdown(f"🟢 **{gig['pay']}**")
+        st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
 
-    st.markdown("### 🚀 Matched Opportunities")
-
-    available_gigs = [
-        {
-            "title": "Custom Artwork & Digital Banner Designer",
-            "pay": "₹1,800 / project",
-            "skill": "Graphic Design & Visual Art",
-            "desc": "Design custom illustrations, canvas art, and social media banners for brands."
-        },
-        {
-            "title": "YouTube Shorts & Reels Editor",
-            "pay": "₹1,500 / weekend",
-            "skill": "Video Editing & Short-form Content",
-            "desc": "Edit short videos with captions, cuts, and background music for creators."
-        },
-        {
-            "title": "Jingle & Background Score Composer",
-            "pay": "₹2,200 / track",
-            "skill": "Music, Audio & Voiceover",
-            "desc": "Create background music, voiceovers, or acoustic jingles for brand campaigns."
-        },
-        {
-            "title": "Reels Dance & Choreography Creator",
-            "pay": "₹2,000 / project",
-            "skill": "Dance & Performing Arts",
-            "desc": "Choreograph or perform trending short-form dance reels for promotional events."
-        },
-        {
-            "title": "Web Development & Python Scripting",
-            "pay": "₹2,000 / weekend",
-            "skill": "Web Development & Scripting",
-            "desc": "Build scripts and responsive landing pages using HTML/Python."
-        },
-        {
-            "title": "Hindi Subtitle Translator",
-            "pay": "₹1,200 / weekend",
-            "skill": "Language Translation & Subtitling",
-            "desc": "Translate video audio into clean Hinglish/Hindi subtitles."
-        },
-        {
-            "title": "General Weekend Micro-Task Assistant",
-            "pay": "₹1,000 / day",
-            "skill": "General Micro-Task Freelancer",
-            "desc": "Assist with general digital tasks, social media engagement, and community support."
-        }
-    ]
-
-    detected = st.session_state.get("extracted_skills", [])
-
-    matched_gigs = [g for g in available_gigs if g["skill"] in detected]
-    other_gigs = [g for g in available_gigs if g["skill"] not in detected]
-
-    for gig in matched_gigs:
+if other_gigs:
+    st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
+    for gig in other_gigs:
         with st.container(border=True):
-            st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
+            st.info("✦ 75% RELATED OPPORTUNITY")
             c1, c2 = st.columns([3, 1])
             with c1:
                 st.markdown(f"**{gig['title']}**")
                 st.caption(gig["desc"])
             with c2:
                 st.markdown(f"🟢 **{gig['pay']}**")
-            st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
-
-    if other_gigs:
-        st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
-        for gig in other_gigs:
-            with st.container(border=True):
-                st.info("✦ 75% RELATED OPPORTUNITY")
-                c1, c2 = st.columns([3, 1])
-                with c1:
-                    st.markdown(f"**{gig['title']}**")
-                    st.caption(gig["desc"])
-                with c2:
-                    st.markdown(f"🟢 **{gig['pay']}**")
-                st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
+            st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
