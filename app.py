@@ -265,7 +265,7 @@ if not st.session_state["authenticated"]:
             st.markdown("<br>", unsafe_allow_html=True)
 
             if tab_choice == "Login":
-                email = st.text_input("Email address", value="lavyanika@rkgit.edu.in")
+                email = st.text_input("Email address", value="student@gmail.com")
                 password = st.text_input("Password", type="password", value="••••••••••••")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -277,7 +277,7 @@ if not st.session_state["authenticated"]:
                 name = st.text_input("Full name", value="Lavy Uppadhaya")
                 college = st.text_input("College / Institution", value="rkgit")
                 degree = st.selectbox("Degree", ["B.Tech", "B.Sc", "B.Com", "BCA", "Other"])
-                email = st.text_input("Email address", value="lavyanika@rkgit.edu.in")
+                email = st.text_input("Email address", value="student@gmail.com")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("Create Profile & Continue", use_container_width=True):
