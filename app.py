@@ -336,6 +336,11 @@ if not st.session_state["authenticated"]:
 
 user = st.session_state["user_data"]
 
+# Initialize default session state if not set
+if "transcript" not in st.session_state:
+    st.session_state["transcript"] = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+    st.session_state["extracted_skills"] = extract_skills_and_intent(st.session_state["transcript"])
+
 # ---------------- SIDEBAR WITH INTERACTIVE USER POPOVER ----------------
 
 with st.sidebar:
@@ -385,7 +390,7 @@ with st.sidebar:
 st.markdown("""
 <div class="dash-hero-title">
     Your voice.<br>
-    fp<span>Your opportunities.</span>
+    <span>Your opportunities.</span>
 </div>
 <div class="dash-hero-sub">
     Speak naturally. VOYA listens, understands your skills and finds opportunities based on what you tell it.
@@ -442,9 +447,12 @@ if audio_bytes:
             except Exception:
                 parsed_transcript = ""
 
-            if parsed_transcript.strip():
-                st.session_state["transcript"] = parsed_transcript
-                st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
+            if not parsed_transcript.strip():
+                parsed_transcript = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+
+            st.session_state["transcript"] = parsed_transcript
+            st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
+            st.rerun()
 
 st.markdown("---")
 
@@ -463,92 +471,92 @@ if st.button("Analyze Typed Skills"):
     if text_input_val.strip():
         st.session_state["transcript"] = text_input_val.strip()
         st.session_state["extracted_skills"] = extract_skills_and_intent(text_input_val.strip())
+        st.rerun()
 
-# ---------------- DYNAMIC OPPORTUNITY MATCHING (ONLY SHOWS AFTER USER ACTION) ----------------
+# ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
-if "transcript" in st.session_state and st.session_state["transcript"]:
-    st.markdown("<br>", unsafe_allow_html=True)
-    skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["General Micro-Task Freelancer"]))
+st.markdown("<br>", unsafe_allow_html=True)
+skills_formatted = " • ".join(st.session_state.get("extracted_skills", ["Video Editing & Short-form Content"]))
 
-    st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
+st.success(f'📝 Active Skill Query: "{st.session_state.get("transcript", "")}"')
 
+with st.container(border=True):
+    st.markdown("### 👤 Generated Student Profile")
+    st.markdown(f"**Name:** {user['name']} | **College:** {user['college']}")
+    st.markdown(f"**Detected Skills:** `{skills_formatted}`")
+
+st.markdown("### 🚀 Matched Opportunities")
+
+available_gigs = [
+    {
+        "title": "YouTube Shorts & Reels Editor",
+        "pay": "₹1,500 / weekend",
+        "skill": "Video Editing & Short-form Content",
+        "desc": "Edit short videos with captions, cuts, and background music for creators."
+    },
+    {
+        "title": "Custom Artwork & Digital Banner Designer",
+        "pay": "₹1,800 / project",
+        "skill": "Graphic Design & Visual Art",
+        "desc": "Design custom illustrations, canvas art, and social media banners for brands."
+    },
+    {
+        "title": "Jingle & Background Score Composer",
+        "pay": "₹2,200 / track",
+        "skill": "Music, Audio & Voiceover",
+        "desc": "Create background music, voiceovers, or acoustic jingles for brand campaigns."
+    },
+    {
+        "title": "Reels Dance & Choreography Creator",
+        "pay": "₹2,000 / project",
+        "skill": "Dance & Performing Arts",
+        "desc": "Choreograph or perform trending short-form dance reels for promotional events."
+    },
+    {
+        "title": "Web Development & Python Scripting",
+        "pay": "₹2,000 / weekend",
+        "skill": "Web Development & Scripting",
+        "desc": "Build scripts and responsive landing pages using HTML/Python."
+    },
+    {
+        "title": "Hindi Subtitle Translator",
+        "pay": "₹1,200 / weekend",
+        "skill": "Language Translation & Subtitling",
+        "desc": "Translate video audio into clean Hinglish/Hindi subtitles."
+    },
+    {
+        "title": "General Weekend Micro-Task Assistant",
+        "pay": "₹1,000 / day",
+        "skill": "General Micro-Task Freelancer",
+        "desc": "Assist with general digital tasks, social media engagement, and community support."
+    }
+]
+
+detected = st.session_state.get("extracted_skills", [])
+
+matched_gigs = [g for g in available_gigs if g["skill"] in detected]
+other_gigs = [g for g in available_gigs if g["skill"] not in detected]
+
+for gig in matched_gigs:
     with st.container(border=True):
-        st.markdown("### 👤 Generated Student Profile")
-        st.markdown(f"**Name:** {user['name']} | **College:** {user['college']}")
-        st.markdown(f"**Detected Skills:** `{skills_formatted}`")
+        st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            st.markdown(f"**{gig['title']}**")
+            st.caption(gig["desc"])
+        with c2:
+            st.markdown(f"🟢 **{gig['pay']}**")
+        st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
 
-    st.markdown("### 🚀 Matched Opportunities")
-
-    available_gigs = [
-        {
-            "title": "YouTube Shorts & Reels Editor",
-            "pay": "₹1,500 / weekend",
-            "skill": "Video Editing & Short-form Content",
-            "desc": "Edit short videos with captions, cuts, and background music for creators."
-        },
-        {
-            "title": "Custom Artwork & Digital Banner Designer",
-            "pay": "₹1,800 / project",
-            "skill": "Graphic Design & Visual Art",
-            "desc": "Design custom illustrations, canvas art, and social media banners for brands."
-        },
-        {
-            "title": "Jingle & Background Score Composer",
-            "pay": "₹2,200 / track",
-            "skill": "Music, Audio & Voiceover",
-            "desc": "Create background music, voiceovers, or acoustic jingles for brand campaigns."
-        },
-        {
-            "title": "Reels Dance & Choreography Creator",
-            "pay": "₹2,000 / project",
-            "skill": "Dance & Performing Arts",
-            "desc": "Choreograph or perform trending short-form dance reels for promotional events."
-        },
-        {
-            "title": "Web Development & Python Scripting",
-            "pay": "₹2,000 / weekend",
-            "skill": "Web Development & Scripting",
-            "desc": "Build scripts and responsive landing pages using HTML/Python."
-        },
-        {
-            "title": "Hindi Subtitle Translator",
-            "pay": "₹1,200 / weekend",
-            "skill": "Language Translation & Subtitling",
-            "desc": "Translate video audio into clean Hinglish/Hindi subtitles."
-        },
-        {
-            "title": "General Weekend Micro-Task Assistant",
-            "pay": "₹1,000 / day",
-            "skill": "General Micro-Task Freelancer",
-            "desc": "Assist with general digital tasks, social media engagement, and community support."
-        }
-    ]
-
-    detected = st.session_state.get("extracted_skills", [])
-
-    matched_gigs = [g for g in available_gigs if g["skill"] in detected]
-    other_gigs = [g for g in available_gigs if g["skill"] not in detected]
-
-    for gig in matched_gigs:
+if other_gigs:
+    st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
+    for gig in other_gigs:
         with st.container(border=True):
-            st.success("✦ 100% MATCHED VIA VOYA SPEECH ANALYSIS")
+            st.info("✦ 75% RELATED OPPORTUNITY")
             c1, c2 = st.columns([3, 1])
             with c1:
                 st.markdown(f"**{gig['title']}**")
                 st.caption(gig["desc"])
             with c2:
                 st.markdown(f"🟢 **{gig['pay']}**")
-            st.button(f"Quick Apply — {gig['title']}", key=f"matched_{gig['title']}", use_container_width=True)
-
-    if other_gigs:
-        st.markdown("<br>#### 💡 Other Available Opportunities", unsafe_allow_html=True)
-        for gig in other_gigs:
-            with st.container(border=True):
-                st.info("✦ 75% RELATED OPPORTUNITY")
-                c1, c2 = st.columns([3, 1])
-                with c1:
-                    st.markdown(f"**{gig['title']}**")
-                    st.caption(gig["desc"])
-                with c2:
-                    st.markdown(f"🟢 **{gig['pay']}**")
-                st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
+            st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
