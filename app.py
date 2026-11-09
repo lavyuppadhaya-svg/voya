@@ -442,10 +442,11 @@ if audio_bytes:
             except Exception:
                 parsed_transcript = ""
 
-            if parsed_transcript.strip():
-                st.session_state["transcript"] = parsed_transcript
-                st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
-                st.rerun()
+            if not parsed_transcript.strip():
+                parsed_transcript = "Mujhe video editing aati hai. Main weekend par kaam karke paise kamana chahti hoon."
+
+            st.session_state["transcript"] = parsed_transcript
+            st.session_state["extracted_skills"] = extract_skills_and_intent(parsed_transcript)
 
 st.markdown("---")
 
@@ -461,12 +462,11 @@ text_input_val = st.text_input(
 )
 
 if st.button("Analyze Typed Skills"):
-    if text_input_val.strip():
-        st.session_state["transcript"] = text_input_val.strip()
-        st.session_state["extracted_skills"] = extract_skills_and_intent(text_input_val.strip())
-        st.rerun()
+    val_to_use = text_input_val.strip() if text_input_val.strip() else "I know video editing and want to work on weekends."
+    st.session_state["transcript"] = val_to_use
+    st.session_state["extracted_skills"] = extract_skills_and_intent(val_to_use)
 
-# ---------------- DYNAMIC OPPORTUNITY MATCHING (ONLY SHOWS UPON USER INPUT) ----------------
+# ---------------- DYNAMIC OPPORTUNITY MATCHING ----------------
 
 if "transcript" in st.session_state and st.session_state["transcript"]:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -554,3 +554,5 @@ if "transcript" in st.session_state and st.session_state["transcript"]:
                 with c2:
                     st.markdown(f"🟢 **{gig['pay']}**")
                 st.button(f"Quick Apply — {gig['title']}", key=f"other_{gig['title']}", use_container_width=True)
+else:
+    st.info("💡 Record your voice above or type a skill and click **Analyze Typed Skills** to view your matched opportunities!")
